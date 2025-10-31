@@ -6,9 +6,9 @@ import statistics
 # Zakresy do generowania rozkładów losowych
 ZAKRES_CZASU_A = (2, 15)  # min - jednostajny
 ZAKRES_CZASU_B = (10, 20)  # min - jednostajny
-ZAKRES_MTBF = (120, 180)  # min - wykładniczy
-ZAKRES_MTTR = (3, 10)  # min - wykładniczy
-ZAKRES_LAMBDA = (10, 20)  # min - wykładniczy
+ZAKRES_MTBF = (120, 180)  # min - parametr dla losowania średniej MTBF
+ZAKRES_MTTR = (3, 10)  # min - parametr dla losowania średniej MTTR
+ZAKRES_LAMBDA = (10, 20)  # min - parametr dla losowania średniego czasu między przybyciami
 
 # Wybrana konfiguracja
 LICZBA_MASZYN_A = 3
@@ -34,7 +34,7 @@ class ZasobProdukcyjny:
         self.zasob = simpy.Resource(srodowisko, capacity=1)
         self.zakres_czasu_przetwarzania = zakres_czasu_przetwarzania
 
-        # 🔧 DODANE:
+        # przechowujemy przekazane zakresy jako atrybuty
         self.zakres_czasu_naprawy = zakres_czasu_naprawy
         self.zakres_mtbf = zakres_mtbf
 
@@ -46,9 +46,78 @@ class ZasobProdukcyjny:
         self.zepsuta = False
         self.ostatnia_zmiana_stanu = srodowisko.now
 
-        # Proces awarii w tle
+        # Uruchamiamy proces awarii
         self.srodowisko.process(self.proces_awarii())
 
+    def proces_awarii(self):
+        """Proces, który losowo psuje maszynę i ją naprawia."""
+        while True:
+            # 1. Najpierw losujemy "średnią" MTBF z zadanego zakresu (można interpretować jako niepewność)
+            srednia_mtbf = random.uniform(*self.zakres_mtbf)
+            # Czas do awarii: rozkład wykładniczy o średniej = srednia_mtbf
+            czas_do_awarii = random.expovariate(1.0 / srednia_mtbf)
+
+            yield self.srodowisko.timeout(czas_do_awarii)
+
+            # --- Maszyna ulega awarii ---
+            self.zepsuta = True
+            self.ostatnia_zmiana_stanu = self.srodowisko.now
+
+            # Jeśli ktoś aktualnie używa zasobu — spróbuj przerwać ten proces
+            if self.zasob.users:
+                # request = self.zasob.users[0]  # typ: Request
+                req = self.zasob.users[0]
+                # Niektóre wersje SimPy mają .proc, więc zabezpieczamy się
+                proc = getattr(req, 'proc', None)
+                if proc is not None:
+                    try:
+                        proc.interrupt()
+                    except Exception:
+                        # jeśli przerwanie się nie powiedzie, po prostu kontynuujemy — i tak czekamy na naprawę
+                        pass
+
+            # 2. Czas naprawy: najpierw losujemy średni MTTR z zadanego zakresu, potem próbka wykładnicza
+            srednia_mttr = random.uniform(*self.zakres_czasu_naprawy)
+            czas_naprawy = random.expovariate(1.0 / srednia_mttr)
+
+            start_naprawy = self.srodowisko.now
+            yield self.srodowisko.timeout(czas_naprawy)
+            self.czas_naprawy_sumaryczny += (self.srodowisko.now - start_naprawy)
+
+            # Maszyna naprawiona
+            self.zepsuta = False
+            self.ostatnia_zmiana_stanu = self.srodowisko.now
+
+    def uzyj_zasobu(self, id_elementu, oryginalny_czas_przetwarzania):
+        """Użycie maszyny do przetworzenia elementu, z obsługą przerwań (awarii)."""
+        with self.zasob.request() as zgloszenie:
+            yield zgloszenie
+
+            # Jeśli maszyna jest zepsuta w momencie rozpoczęcia, czekamy aż będzie sprawna
+            while self.zepsuta:
+                yield self.srodowisko.timeout(1)
+
+            # Przetwarzamy element; jeśli nastąpi przerwanie to obsłużymy je i poczekamy na naprawę
+            czas_pozostaly = oryginalny_czas_przetwarzania
+            while czas_pozostaly > 0:
+                start_czasu_przetwarzania = self.srodowisko.now
+                try:
+                    # próbujemy przetworzyć pozostały czas
+                    yield self.srodowisko.timeout(czas_pozostaly)
+                    # jeśli doszliśmy tutaj bez przerwania — zapisujemy czas pracy
+                    czas_pracy = self.srodowisko.now - start_czasu_przetwarzania
+                    self.czas_pracy_sumaryczny += czas_pracy
+                    czas_pozostaly = 0
+                except simpy.Interrupt:
+                    # przerwane wskutek awarii — naliczamy przetworzony fragment
+                    czas_przetworzony = self.srodowisko.now - start_czasu_przetwarzania
+                    if czas_przetworzony > 0:
+                        self.czas_pracy_sumaryczny += czas_przetworzony
+                    czas_pozostaly -= czas_przetworzony
+
+                    # czekamy aż maszyna zostanie naprawiona
+                    while self.zepsuta:
+                        yield self.srodowisko.timeout(1)
 
 
 # --- 4. PROCES ELEMENTU ---
@@ -77,11 +146,8 @@ def proces_elementu(srodowisko, id_elementu, zasoby_etapu_a, zasoby_etapu_b, cza
     # Użycie zasobu B
     yield srodowisko.process(zasob_b.uzyj_zasobu(id_elementu, czas_przetwarzania_b))
 
-    # Czas oczekiwania między etapami (Przybliżony pomiar: czas od zakończenia A do rozpoczęcia przetwarzania B)
-    # Jest to czas spędzony w kolejce/oczekiwaniu na dostępność maszyny B
+    # Czas oczekiwania między etapami (przybliżony)
     czas_oczekiwania_b = srodowisko.now - czas_przed_oczekiwaniem_b - czas_przetwarzania_b
-
-    # Używamy tylko dodatnich wartości, by wyeliminować wpływ błędów zaokrągleń
     if czas_oczekiwania_b > 0:
         CZASY_OCZEKIWANIA_A_B.append(czas_oczekiwania_b)
 
@@ -99,7 +165,7 @@ def zrodlo(srodowisko, zasoby_etapu_a, zasoby_etapu_b, zakres_lambda):
     """Generuje elementy do systemu."""
     id_elementu = 0
     while True:
-        # Losowy czas przybycia (Interarrival Time) - wykładniczy
+        # Losowy czas przybycia (średnia losowana z zakresu, potem próbka wykładnicza)
         srednia_miedzy_przybyciami = random.uniform(*zakres_lambda)
         czas_miedzy_przybyciami = random.expovariate(1.0 / srednia_miedzy_przybyciami)
 
@@ -141,20 +207,14 @@ def uruchom_symulacje(czas_symulacji):
     srodowisko.run(until=czas_symulacji)
 
     # --- Zbieranie wskaźników ---
-
     przepustowosc = ELEMENTY_UKONCZONE / czas_symulacji
-
     sredni_czas_realizacji = statistics.mean(CZASY_REALIZACJI) if CZASY_REALIZACJI else 0
-
     sredni_czas_oczekiwania_a_b = statistics.mean(CZASY_OCZEKIWANIA_A_B) if CZASY_OCZEKIWANIA_A_B else 0
 
     wykorzystanie = {}
-
     wszystkie_zasoby = zasoby_etapu_a + zasoby_etapu_b
-
     for zasob in wszystkie_zasoby:
-        # Wykorzystanie maszyn (procentowy czasu, w którym maszyna jest aktywna/jest naprawiana).
-        # W SimPy 3 (bez Monitora) jest to sumaryczny czas pracy + czas naprawy podzielony przez czas symulacji.
+        # Wykorzystanie maszyn (sumaryczny czas pracy + czas naprawy podzielony przez czas symulacji)
         czas_aktywny = zasob.czas_pracy_sumaryczny + zasob.czas_naprawy_sumaryczny
         wykorzystanie[zasob.nazwa] = czas_aktywny / czas_symulacji
 
@@ -167,14 +227,15 @@ def uruchom_symulacje(czas_symulacji):
 
 
 # Uruchomienie i wyświetlenie wyników
-wyniki = uruchom_symulacje(CZAS_SYMULACJI)
+if __name__ == "__main__":
+    wyniki = uruchom_symulacje(CZAS_SYMULACJI)
 
-print("\n--- WYNIKI SYMULACJI (K_A={}, K_B={}, Czas: {} min) ---".format(LICZBA_MASZYN_A, LICZBA_MASZYN_B,
-                                                                         CZAS_SYMULACJI))
-for klucz, wartosc in wyniki.items():
-    if klucz == "Wykorzystanie Maszyn (Praca + Naprawa)":
-        print(f"\n{klucz}:")
-        for nazwa_zasobu, wykorzystanie_procent in wartosc.items():
-            print(f"  {nazwa_zasobu}: {wykorzystanie_procent * 100:.2f}%")
-    else:
-        print(f"{klucz}: {wartosc:.4f}")
+    print("\n--- WYNIKI SYMULACJI (K_A={}, K_B={}, Czas: {} min) ---".format(
+        LICZBA_MASZYN_A, LICZBA_MASZYN_B, CZAS_SYMULACJI))
+    for klucz, wartosc in wyniki.items():
+        if klucz == "Wykorzystanie Maszyn (Praca + Naprawa)":
+            print(f"\n{klucz}:")
+            for nazwa_zasobu, wykorzystanie_procent in wartosc.items():
+                print(f"  {nazwa_zasobu}: {wykorzystanie_procent * 100:.2f}%")
+        else:
+            print(f"{klucz}: {wartosc:.4f}")
