@@ -1,0 +1,3 @@
+#projekt
+#system
+print("fgf")
