@@ -1,0 +1,82 @@
+SYMULACJA KOMPUTEROWA - PROJEKT
+Dwuetapowa linia produkcyjna z awariami maszyn
+============================================================
+
+============================================================
+WERYFIKACJA MODELU
+============================================================
+
+--- TEST 1: Symulacja bez awarii maszyn ---
+Przepustowość: 0.0666 elem/min
+Średni czas realizacji: 26.25 min
+Liczba ukończonych elementów: 666
+
+--- TEST 2: Analiza stabilności wyników ---
+Uruchomienie 1: 0.0673 elem/min
+Uruchomienie 2: 0.0656 elem/min
+Uruchomienie 3: 0.0654 elem/min
+Uruchomienie 4: 0.0690 elem/min
+Uruchomienie 5: 0.0699 elem/min
+
+Średnia przepustowość: 0.0674 elem/min
+Odchylenie standardowe: 0.0020
+Współczynnik zmienności: 2.97%
+✓ Wyniki są stabilne
+
+--- TEST 3: Porównanie konfiguracji maszyn ---
+
+Minimalna konfiguracja (K_A=2, K_B=2):
+  Przepustowość: 0.0644 elem/min
+  Czas realizacji: 28.09 min
+
+Zwiększony etap A (K_A=3, K_B=2):
+  Przepustowość: 0.0660 elem/min
+  Czas realizacji: 27.79 min
+
+Zwiększony etap B (K_A=2, K_B=3):
+  Przepustowość: 0.0672 elem/min
+  Czas realizacji: 26.01 min
+
+Zrównoważona konfiguracja (K_A=3, K_B=3):
+  Przepustowość: 0.0712 elem/min
+  Czas realizacji: 24.98 min
+
+============================================================
+GŁÓWNA SYMULACJA
+============================================================
+
+--- WYNIKI SYMULACJI ---
+Konfiguracja: K_A=3, K_B=2
+Czas symulacji: 50000 min
+----------------------------------------
+Przepustowość: 0.0640 elem/min
+Średni czas realizacji: 27.61 min
+Średni czas oczekiwania A->B: 5.27 min
+Liczba ukończonych elementów: 3200
+
+--- WYKORZYSTANIE MASZYN ---
+A_0:
+  - Wykorzystanie: 118.80%
+  - Czas pracy: 57142.39 min
+  - Czas naprawy: 2257.20 min
+  - Liczba awarii: 321
+A_1:
+  - Wykorzystanie: 118.20%
+  - Czas pracy: 57217.02 min
+  - Czas naprawy: 1885.32 min
+  - Liczba awarii: 287
+A_2:
+  - Wykorzystanie: 117.92%
+  - Czas pracy: 56835.92 min
+  - Czas naprawy: 2122.86 min
+  - Liczba awarii: 337
+B_0:
+  - Wykorzystanie: 147.81%
+  - Czas pracy: 71740.08 min
+  - Czas naprawy: 2162.89 min
+  - Liczba awarii: 327
+B_1:
+  - Wykorzystanie: 147.14%
+  - Czas pracy: 71351.38 min
+  - Czas naprawy: 2216.24 min
+  - Liczba awarii: 342
