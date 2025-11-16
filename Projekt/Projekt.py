@@ -5,7 +5,7 @@ import random
 import statistics
 from typing import Dict, List, Tuple
 
-# PARAMETRY SYSTEMU (zgodnie z Etapem I)
+# PARAMETRY SYSTEMU
 
 # Zakresy czasowe dla poszczególnych procesów
 ZAKRES_CZASU_A = (2, 15)  # min - rozkład jednostajny
@@ -25,50 +25,19 @@ CZAS_SYMULACJI = 50000  # min
 # KLASY DO ZBIERANIA STATYSTYK
 
 class StatystykiSymulacji:
-    """
-    Klasa do zbierania i przechowywania statystyk z symulacji.
-
-    Atrybuty:
-        czasy_realizacji (List[float]): Lista czasów przebywania elementów w systemie
-        czasy_oczekiwania_a_b (List[float]): Lista czasów oczekiwania między etapami A i B
-        elementy_ukonczone (int): Liczba ukończonych elementów
-        historia_awarii (Dict[str, List[Tuple[float, float]]): Historia awarii maszyn
-    """
 
     def __init__(self):
         self.czasy_realizacji = []
         self.czasy_oczekiwania_a_b = []
         self.elementy_ukonczone = 0
-        self.historia_awarii = {}
 
     def resetuj(self):
-        """Resetuje wszystkie statystyki do wartości początkowych."""
         self.czasy_realizacji = []
         self.czasy_oczekiwania_a_b = []
         self.elementy_ukonczone = 0
-        self.historia_awarii = {}
 
 
 class ZasobProdukcyjny:
-    """
-    Reprezentuje maszynę produkcyjną z losową awaryjnością.
-
-    Maszyna może ulec awarii podczas pracy i wymagać naprawy.
-    Klasa zbiera statystyki dotyczące czasu pracy i napraw.
-
-    Atrybuty:
-        srodowisko (simpy.Environment): Środowisko symulacyjne
-        nazwa (str): Nazwa maszyny
-        zasob (simpy.Resource): Zasób symulacyjny
-        zakres_czasu_przetwarzania (Tuple[float, float]): Zakres czasu przetwarzania
-        zakres_czasu_naprawy (Tuple[float, float]): Zakres czasu naprawy
-        zakres_mtbf (Tuple[float, float]): Zakres czasu między awariami
-        czas_pracy_sumaryczny (float): Sumaryczny czas pracy
-        czas_naprawy_sumaryczny (float): Sumaryczny czas napraw
-        zepsuta (bool): Flaga wskazująca czy maszyna jest zepsuta
-        ostatnia_zmiana_stanu (float): Czas ostatniej zmiany stanu
-        liczba_awarii (int): Liczba awarii maszyny
-    """
 
     def __init__(self, srodowisko: simpy.Environment, nazwa: str,
                  zakres_czasu_przetwarzania: Tuple[float, float],
@@ -94,18 +63,12 @@ class ZasobProdukcyjny:
         self.srodowisko.process(self._proces_awarii())
 
     def _proces_awarii(self):
-        """
-        Symuluje cykliczne awarie i naprawy maszyny.
 
-        Proces działający w tle, który:
-        1. Czeka losowy czas do awarii (MTBF)
-        2. Oznacza maszynę jako zepsutą
-        3. Czeka czas naprawy (MTTR)
-        4. Przywraca maszynę do stanu sprawnego
-        """
         while True:
             try:
-                # Losowy czas do awarii (MTBF) z rozkładu wykładniczego
+                # Losowanie czasu do następnej awarii
+                # MTBF jest losowany z rozkładu jednostajnego, a czas awarii z wykładniczego
+
                 srednia_mtbf = random.uniform(*self.zakres_mtbf)
                 czas_do_awarii = random.expovariate(1.0 / srednia_mtbf)
                 yield self.srodowisko.timeout(czas_do_awarii)
@@ -116,7 +79,9 @@ class ZasobProdukcyjny:
                 self.czas_pracy_sumaryczny += self.srodowisko.now - self.ostatnia_zmiana_stanu
                 self.ostatnia_zmiana_stanu = self.srodowisko.now
 
-                # Losowy czas naprawy (MTTR) z rozkładu wykładniczego
+                # Losowanie czasu naprawy
+                # MTTR jest losowany z rozkładu jednostajnego, a czas naprawy z wykładniczego
+
                 sredni_mttr = random.uniform(*self.zakres_czasu_naprawy)
                 czas_naprawy = random.expovariate(1.0 / sredni_mttr)
                 yield self.srodowisko.timeout(czas_naprawy)
@@ -131,16 +96,7 @@ class ZasobProdukcyjny:
                 break
 
     def uzyj_zasobu(self, id_elementu: int, czas_przetwarzania: float):
-        """
-        Użycie maszyny przez element produkcyjny.
 
-        Args:
-            id_elementu (int): Identyfikator elementu
-            czas_przetwarzania (float): Czas potrzebny na przetworzenie elementu
-
-        Yields:
-            simpy.events: Zdarzenia symulacyjne
-        """
         with self.zasob.request() as req:
             # Oczekiwanie na dostępność maszyny
             yield req
@@ -165,21 +121,7 @@ def proces_elementu(srodowisko: simpy.Environment, id_elementu: int,
                     zasoby_etapu_a: List[ZasobProdukcyjny],
                     zasoby_etapu_b: List[ZasobProdukcyjny],
                     czas_przybycia: float, statystyki: StatystykiSymulacji):
-    """
-    Opisuje przepływ elementu przez dwuetapową linię produkcyjną.
 
-    Element przechodzi przez:
-    1. Etap A (obróbka wstępna)
-    2. Etap B (montaż)
-
-    Args:
-        srodowisko: Środowisko symulacyjne
-        id_elementu: Unikalny identyfikator elementu
-        zasoby_etapu_a: Lista maszyn w etapie A
-        zasoby_etapu_b: Lista maszyn w etapie B
-        czas_przybycia: Czas przybycia elementu do systemu
-        statystyki: Obiekt do zbierania statystyk
-    """
     # Losowe czasy przetwarzania z rozkładów jednostajnych
     czas_przetwarzania_a = random.uniform(*ZAKRES_CZASU_A)
     czas_przetwarzania_b = random.uniform(*ZAKRES_CZASU_B)
@@ -218,16 +160,6 @@ def zrodlo_elementow(srodowisko: simpy.Environment,
                      zasoby_etapu_b: List[ZasobProdukcyjny],
                      zakres_lambda: Tuple[float, float],
                      statystyki: StatystykiSymulacji):
-    """
-    Generator nowych elementów do systemu w losowych odstępach czasowych.
-
-    Args:
-        srodowisko: Środowisko symulacyjne
-        zasoby_etapu_a: Lista maszyn w etapie A
-        zasoby_etapu_b: Lista maszyn w etapie B
-        zakres_lambda: Zakres średniego czasu między przybyciami
-        statystyki: Obiekt do zbierania statystyk
-    """
     id_elementu = 0
     while True:
         # Losowy czas między przybyciami z rozkładu wykładniczego
@@ -246,16 +178,7 @@ def zrodlo_elementow(srodowisko: simpy.Environment,
 # FUNKCJE SYMULACJI I WERYFIKACJI
 
 def uruchom_symulacje(czas_symulacji: float, statystyki: StatystykiSymulacji) -> Dict:
-    """
-    Inicjalizuje i uruchamia pojedynczą symulację.
 
-    Args:
-        czas_symulacji: Czas trwania symulacji w minutach
-        statystyki: Obiekt do zbierania statystyk
-
-    Returns:
-        Dict: Słownik z wynikami symulacji
-    """
     # Inicjalizacja środowiska symulacyjnego
     srodowisko = simpy.Environment()
 
@@ -312,14 +235,7 @@ def uruchom_symulacje(czas_symulacji: float, statystyki: StatystykiSymulacji) ->
 
 
 def weryfikacja_modelu():
-    """
-    Weryfikacja modelu poprzez uruchomienie testów deterministycznych.
 
-    Testy obejmują:
-    1. Symulację bez awarii maszyn
-    2. Porównanie z obliczeniami teoretycznymi
-    3. Analizę stabilności wyników
-    """
     print("\n" + "=" * 60)
     print("WERYFIKACJA MODELU")
     print("=" * 60)
@@ -371,9 +287,6 @@ def weryfikacja_modelu():
 
 
 def test_wydajnosci_konfiguracji():
-    """
-    Testowanie różnych konfiguracji maszyn w celu weryfikacji logiki systemu.
-    """
     print("\n--- TEST 3: Porównanie konfiguracji maszyn ---")
 
     konfiguracje = [
@@ -398,12 +311,8 @@ def test_wydajnosci_konfiguracji():
 # GŁÓWNA FUNKCJA SYMULACJI
 
 def main():
-    """
-    Główna funkcja uruchamiająca symulację i prezentująca wyniki.
-    """
     print("SYMULACJA KOMPUTEROWA - PROJEKT")
     print("Dwuetapowa linia produkcyjna z awariami maszyn")
-    print("=" * 60)
 
     # Weryfikacja modelu
     weryfikacja_modelu()

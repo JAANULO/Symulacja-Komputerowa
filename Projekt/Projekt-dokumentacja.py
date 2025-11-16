@@ -11,7 +11,7 @@ import statistics
 from typing import Dict, List, Tuple
 
 # ============================================================================
-# PARAMETRY SYSTEMU
+# PARAMETRY SYSTEMU (zgodnie z Etapem I)
 # ============================================================================
 
 ZAKRES_CZASU_A = (2, 15)      # Czas przetwarzania etapu A [min], rozkład jednostajny
@@ -32,21 +32,22 @@ class StatystykiSymulacji:
     """Klasa do zbierania statystyk z przebiegu symulacji."""
 
     def __init__(self):
-        self.czasy_realizacji = []        # Lista czasów przebywania elementów w systemie
-        self.czasy_oczekiwania_a_b = []   # Lista czasów oczekiwania między etapami
-        self.elementy_ukonczone = 0       # Licznik ukończonych elementów
-        self.historia_awarii = {}         # Słownik z historią awarii maszyn
+        self.czasy_realizacji = []        # Lista czasów przebywania elementów w systemie (List[float])
+        self.czasy_oczekiwania_a_b = []   # Lista czasów oczekiwania między etapami A i B (List[float])
+        self.elementy_ukonczone = 0       # Licznik ukończonych elementów (int)
 
     def resetuj(self):
         """Resetuje statystyki do wartości początkowych."""
         self.czasy_realizacji = []
         self.czasy_oczekiwania_a_b = []
         self.elementy_ukonczone = 0
-        self.historia_awarii = {}
 
 
 class ZasobProdukcyjny:
-    """Klasa reprezentująca maszynę z mechanizmem losowej awaryjności."""
+    """Klasa reprezentująca maszynę z mechanizmem losowej awaryjności.
+    Maszyna może ulec awarii podczas pracy i wymagać naprawy.
+    Klasa zbiera statystyki dotyczące czasu pracy i napraw.
+    """
 
     def __init__(self, srodowisko: simpy.Environment, nazwa: str,
                  zakres_czasu_przetwarzania: Tuple[float, float],
@@ -61,6 +62,11 @@ class ZasobProdukcyjny:
             zakres_czasu_przetwarzania: Zakres czasu przetwarzania (min, max)
             zakres_czasu_naprawy: Zakres czasu naprawy MTTR (min, max)
             zakres_mtbf: Zakres czasu między awariami MTBF (min, max)
+            czas_pracy_sumaryczny (float): Sumaryczny czas pracy
+            czas_naprawy_sumaryczny (float): Sumaryczny czas napraw
+            zepsuta (bool): Flaga wskazująca czy maszyna jest zepsuta
+            ostatnia_zmiana_stanu (float): Czas ostatniej zmiany stanu
+            liczba_awarii (int): Liczba awarii maszyny
         """
         self.srodowisko = srodowisko
         self.nazwa = nazwa
@@ -85,12 +91,19 @@ class ZasobProdukcyjny:
 
     def _proces_awarii(self):
         """
-        Proces działający w tle - symuluje cykliczne awarie i naprawy.
-        Proces ten działa równolegle do głównej symulacji.
+        Symuluje cykliczne awarie i naprawy maszyny.
+
+        Proces działający w tle, który:
+        1. Czeka losowy czas do awarii (MTBF)
+        2. Oznacza maszynę jako zepsutą
+        3. Czeka czas naprawy (MTTR)
+        4. Przywraca maszynę do stanu sprawnego
         """
         while True:
             try:
-                # Losowanie czasu do następnej awarii (rozkład wykładniczy)
+                # Losowanie czasu do następnej awarii
+                # MTBF jest losowany z rozkładu jednostajnego, a czas awarii z wykładniczego
+
                 srednia_mtbf = random.uniform(*self.zakres_mtbf)
                 czas_do_awarii = random.expovariate(1.0 / srednia_mtbf)
                 yield self.srodowisko.timeout(czas_do_awarii)
@@ -101,7 +114,9 @@ class ZasobProdukcyjny:
                 self.czas_pracy_sumaryczny += self.srodowisko.now - self.ostatnia_zmiana_stanu
                 self.ostatnia_zmiana_stanu = self.srodowisko.now
 
-                # Losowanie czasu naprawy (rozkład wykładniczy)
+                # Losowanie czasu naprawy
+                # MTTR jest losowany z rozkładu jednostajnego, a czas naprawy z wykładniczego
+
                 sredni_mttr = random.uniform(*self.zakres_czasu_naprawy)
                 czas_naprawy = random.expovariate(1.0 / sredni_mttr)
                 yield self.srodowisko.timeout(czas_naprawy)
@@ -121,6 +136,15 @@ class ZasobProdukcyjny:
         Args:
             id_elementu: Identyfikator elementu
             czas_przetwarzania: Wymagany czas przetwarzania [min]
+        Yields:
+            simpy.events: Zdarzenia symulacyjne
+
+        Proces:
+            1. Oczekiwanie na dostępność maszyny
+            2. Oczekiwanie na naprawę jeśli maszyna jest zepsuta
+            3. Przetwarzanie elementu
+            4. Aktualizacja statystyk czasu pracy
+
         """
         with self.zasob.request() as req:
             yield req  # Oczekiwanie na dostępność maszyny
@@ -147,7 +171,9 @@ def proces_elementu(srodowisko: simpy.Environment, id_elementu: int,
                    czas_przybycia: float, statystyki: StatystykiSymulacji):
     """
     Proces opisujący przepływ pojedynczego elementu przez system.
-    Element przechodzi przez etap A (obróbka), następnie etap B (montaż).
+    Element przechodzi przez
+    1. Etap A (obróbka)
+    2. Etap B (montaż)
 
     Args:
         srodowisko: Środowisko symulacyjne
@@ -301,11 +327,12 @@ def uruchom_symulacje(czas_symulacji: float,
 
 def weryfikacja_modelu():
     """
-    Funkcja weryfikująca poprawność modelu.
+    Weryfikacja modelu poprzez uruchomienie testów deterministycznych.
+
     Przeprowadza testy:
-    1. Symulację bez awarii (deterministyczna weryfikacja)
+    1. Symulację bez awarii maszyn (deterministyczna weryfikacja)
     2. Analizę stabilności (wielokrotne uruchomienia)
-    3. Porównanie różnych konfiguracji maszyn
+    3. Test wydajności konfiguracjii
     """
     print("=" * 60)
     print("WERYFIKACJA MODELU")
@@ -355,27 +382,86 @@ def weryfikacja_modelu():
     else:
         print("⚠ Wyniki wykazują dużą zmienność")
 
-# ============================================================================
-# URUCHOMIENIE
-# ============================================================================
+def test_wydajnosci_konfiguracji():
+    """
+    Testowanie różnych konfiguracji maszyn w celu weryfikacji logiki systemu.
+    """
+    print("\n--- TEST 3: Porównanie konfiguracji maszyn ---")
 
-if __name__ == "__main__":
+    # Definicja testowanych konfiguracji (maszyny_A, maszyny_B, opis)
+    konfiguracje = [
+        (2, 2, "Minimalna konfiguracja"),
+        (3, 2, "Zwiększony etap A"),
+        (2, 3, "Zwiększony etap B"),
+        (3, 3, "Zrównoważona konfiguracja")
+    ]
+
+    for ka, kb, opis in konfiguracje:
+        # Zmiana konfiguracji maszyn
+        global LICZBA_MASZYN_A, LICZBA_MASZYN_B
+        LICZBA_MASZYN_A, LICZBA_MASZYN_B = ka, kb
+
+        # Uruchomienie symulacji dla danej konfiguracji
+        statystyki = StatystykiSymulacji()
+        wyniki = uruchom_symulacje(5000, statystyki)
+
+        # Prezentacja wyników
+        print(f"\n{opis} (K_A={ka}, K_B={kb}):")
+        print(f"  Przepustowość: {wyniki['Przepustowość (elem/min)']:.4f} elem/min")
+        print(f"  Czas realizacji: {wyniki['Średni Czas Realizacji (min)']:.2f} min")
+
+
+# GŁÓWNA FUNKCJA SYMULACJI
+
+def main():
+    """
+    Główna funkcja uruchamiająca symulację i prezentująca wyniki.
+
+    Przeprowadza:
+    1. Weryfikację modelu
+    2. Testy konfiguracji
+    3. Główną symulację z oryginalnymi parametrami
+    """
+    print("SYMULACJA KOMPUTEROWA - PROJEKT")
+    print("Dwuetapowa linia produkcyjna z awariami maszyn")
+
     # Weryfikacja modelu
     weryfikacja_modelu()
+    test_wydajnosci_konfiguracji()
 
-    # Główna symulacja
     print("\n" + "=" * 60)
     print("GŁÓWNA SYMULACJA")
     print("=" * 60)
 
+    # Główna symulacja z oryginalnymi parametrami
+    global LICZBA_MASZYN_A, LICZBA_MASZYN_B
+    LICZBA_MASZYN_A, LICZBA_MASZYN_B = 3, 2  # Przywróć oryginalną konfigurację
+
+    # Uruchomienie głównej symulacji
     statystyki = StatystykiSymulacji()
     wyniki = uruchom_symulacje(CZAS_SYMULACJI, statystyki)
 
     print("\n--- WYNIKI SYMULACJI ---")
+    print(f"Konfiguracja: K_A={LICZBA_MASZYN_A}, K_B={LICZBA_MASZYN_B}")
+    print(f"Czas symulacji: {CZAS_SYMULACJI} min")
+    print("-" * 40)
+
     print(f"Przepustowość: {wyniki['Przepustowość (elem/min)']:.4f} elem/min")
     print(f"Średni czas realizacji: {wyniki['Średni Czas Realizacji (min)']:.2f} min")
+    print(f"Średni czas oczekiwania A->B: {wyniki['Średni Czas Oczekiwania A->B (min)']:.2f} min")
     print(f"Liczba ukończonych elementów: {wyniki['Liczba ukończonych elementów']}")
 
-# ============================================================================
-# KONIEC DOKUMENTACJI
-# ============================================================================
+    print("\n--- WYKORZYSTANIE MASZYN ---")
+    for nazwa, dane in wyniki["Wykorzystanie Maszyn"].items():
+        print(f"{nazwa}:")
+        print(f"  - Wykorzystanie: {dane['wykorzystanie_procent']:.2f}%")
+        print(f"  - Czas pracy: {dane['czas_pracy']:.2f} min")
+        print(f"  - Czas naprawy: {dane['czas_naprawy']:.2f} min")
+        print(f"  - Liczba awarii: {dane['liczba_awarii']}")
+
+
+if __name__ == "__main__":
+    main()
+    """
+    Uruchamianie główną funkcję symulacji.
+    """
