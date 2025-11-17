@@ -3,6 +3,9 @@ DOKUMENTACJA KODU - SYMULACJA DWUETAPOWEJ LINII PRODUKCYJNEJ
 Projekt z przedmiotu: Symulacja komputerowa
 Autorzy: Janusz Andrzejewski, Igor Lis
 Semestr: Zimowy 2025/26
+
+
+dodać seed etp 3
 """
 
 import simpy
@@ -232,7 +235,7 @@ def zrodlo_elementow(srodowisko: simpy.Environment,
     id_elementu = 0
 
     while True:
-        # Losowanie czasu do następnego przybycia (rozkład wykładniczy)
+        # Losowanie czasu do następnego przybycia (rozkład wykładniczy) 
         srednia_miedzy_przybyciami = random.uniform(*zakres_lambda)
         czas_miedzy_przybyciami = random.expovariate(1.0 / srednia_miedzy_przybyciami)
         yield srodowisko.timeout(czas_miedzy_przybyciami)
