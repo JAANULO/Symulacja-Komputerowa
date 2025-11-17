@@ -52,8 +52,6 @@ Model symulacyjny został zaimplementowany w języku Python z wykorzystaniem bib
 - Czasy oczekiwania między etapami
 - Wykorzystanie maszyn (czas pracy, naprawy, liczba awarii)
 
-Pełna dokumentacja kodu znajduje się w załączonym pliku: **Projekt-dokumentacja.py**
-
 ---
 
 ## 2. SPRAWDZENIE PROSTEGO PRZYKŁADU
@@ -98,9 +96,9 @@ Aby zweryfikować poprawność implementacji, przeprowadzono symulację **bez aw
 
 | Wskaźnik | Symulacja | Teoria | Różnica | Stosunek |
 |----------|-----------|--------|---------|----------|
-| Przepustowość | 0.0666 | 0.1333 (max) | 0.0667 | 49.95% |
-| | | 0.0667 (λ) | 0.0001 | 99.85% |
-| Czas realizacji | 26.25 min | 23.5 min (min) | 2.75 min | 111.7% |
+| Przepustowość vs. μ_B | 0.0666 | 0.1333 (max) | -0.0667 | 49.95% |
+| Przepustowość vs. λ | 0.0666 | 0.0667 (λ) | -0.0001 | 99.85% |
+| Czas realizacji | 26.25 min | 23.5 min (min) | +2.75 min | 111.7% |
 
 ### 2.5. Wytłumaczenie różnic
 
@@ -220,48 +218,13 @@ Model **poprawnie** identyfikuje wąskie gardło systemu (etap B) i **adekwatnie
 
 ---
 
-## 5. WALIDACJA (OPCJONALNA)
+## 5. WALIDACJA 
 
-### 5.1. Status walidacji
+
 
 Walidacja modelu z danymi rzeczywistymi **nie została przeprowadzona** z następujących przyczyn:
 
-1. **Brak danych rzeczywistych** - symulacja modeluje hipotetyczną linię produkcyjną
-2. **Charakter projektu** - model stworzony w celach edukacyjnych
-3. **Niemożliwość porównania** - brak dostępu do rzeczywistej linii produkcyjnej o analogicznych parametrach
+* **Brak danych rzeczywistych** - symulacja modeluje hipotetyczną linię produkcyjną
+* **Niemożliwość porównania** - brak dostępu do rzeczywistej linii produkcyjnej o analogicznych parametrach
 
-### 5.2. Możliwości walidacji w przyszłości
-
-Gdyby dostępne były dane rzeczywiste, można by przeprowadzić:
-- **Walidację historyczną** - porównanie z danymi z przeszłości
-- **Walidację bieżącą** - równoległe uruchomienie modelu i systemu rzeczywistego
-- **Walidację ekspercką** - ocena przez specjalistów z przemysłu
-
----
-
-## 6. PODSUMOWANIE WERYFIKACJI
-
-### 6.1. Kryteria weryfikacji - status
-
-| Kryterium | Status | Opis |
-|-----------|--------|------|
-| Dokumentacja kodu | ✓ Spełnione | Kod z komentarzami w pliku Projekt-dokumentacja.py |
-| Przykład deterministyczny | ✓ Spełnione | Symulacja bez awarii, porównanie z teorią |
-| Wytłumaczenie różnic | ✓ Spełnione | Różnice wyjaśnione i uzasadnione |
-| Analiza statystyczna | ✓ Spełnione | 5 uruchomień, statystyki opisowe |
-| Walidacja | - Opcjonalna | Nie przeprowadzona (brak danych rzeczywistych) |
-
-### 6.2. Główne wnioski
-
-1. **Poprawność implementacji**
-   - Wyniki symulacji są zgodne z obliczeniami teoretycznymi
-   - Różnice mieszczą się w granicach oczekiwanych dla systemów stochastycznych
-
-2. **Stabilność modelu**
-   - Współczynnik zmienności 2.97% potwierdza wysoką powtarzalność
-   - Model daje spójne wyniki przy różnych ziarnach generatora losowego
-
-3. **Logika systemu**
-   - Model poprawnie identyfikuje wąskie gardło (etap B)
-   - Reaguje adekwatnie na zmiany konfiguracji maszyn
 
