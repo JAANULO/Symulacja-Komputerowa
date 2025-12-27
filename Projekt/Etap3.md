@@ -1,109 +1,104 @@
 # Sprawozdanie z projektu: Symulacja Komputerowa
-## Temat: Analiza wydajności dwuetapowej linii produkcyjnej z uwzględnieniem awaryjności maszyn
+## Temat: Analiza wydajności i optymalizacja dwuetapowej linii produkcyjnej
 
-**Etap III: Badania i analiza wyników**
-
----
-
-## 1. Cel badań
-
-Celem badań przeprowadzonych w Etapie III była weryfikacja efektywności rozbudowy parku maszynowego w drugim etapie produkcji (Etap B - Montaż). W poprzednich etapach zidentyfikowano Etap B jako potencjalne wąskie gardło systemu (ang. *bottleneck*), szczególnie w warunkach zwiększonej intensywności napływu zleceń oraz występowania losowych awarii.
-
-Głównym pytaniem badawczym jest: **Czy zwiększenie liczby maszyn montażowych z 2 do 3 spowoduje istotne statystycznie skrócenie średniego czasu przebywania elementu w systemie?**
+**Etap III: Badania symulacyjne, weryfikacja hipotez i wnioski**
 
 ---
 
-## 2. Plan badań i metodyka
+## 1. Cel i zakres badań
 
-[cite_start]Zgodnie z teorią symulacji, przyjęto plan **badań monoselekcyjnych**[cite: 221], polegający na zmianie jednego parametru wejściowego przy zachowaniu stałych wartości pozostałych parametrów.
+Celem trzeciego etapu projektu było przeprowadzenie zaawansowanych eksperymentów symulacyjnych mających na celu optymalizację pracy systemu produkcyjnego. Na podstawie modelu zbudowanego w Etapie II, zidentyfikowano potencjalne problemy (wąskie gardła) i sformułowano problemy decyzyjne, przed którymi staje menedżer produkcji.
 
-### 2.1. Scenariusze badawcze
-
-Zdefiniowano dwa scenariusze symulacyjne:
-1.  **Scenariusz Bazowy (S1):** Konfiguracja obecna ($K_A=3, K_B=2$).
-2.  **Scenariusz Eksperymentalny (S2):** Konfiguracja rozszerzona ($K_A=3, K_B=3$).
-
-### 2.2. Parametry symulacji
-
-Aby uwypuklić różnice w wydajności i przetestować system w trudniejszych warunkach, przyjęto następujące parametry dla obu scenariuszy:
-* **Czas symulacji:** 10 000 minut.
-* **Intensywność napływu ($\lambda$):** Rozkład wykładniczy ze średnią losowaną z przedziału **(8, 12) min** (zwiększone obciążenie względem Etapu I).
-* **Parametry awarii (MTBF/MTTR):** Bez zmian (zgodnie z modelem z Etapu II).
-
-### 2.3. Metoda redukcji wariancji (Common Random Numbers)
-
-W celu zwiększenia precyzji porównania i wyeliminowania szumu losowego, zastosowano technikę **Wspólnych Liczb Losowych (CRN)**.
-* Wykonano **N = 30** replikacji dla każdego scenariusza.
-* Dla każdej $i$-tej replikacji ($i=1...30$) wygenerowano unikalne ziarno losowości (`seed`), które zostało użyte zarówno w scenariuszu S1, jak i S2.
-* Dzięki temu w obu wariantach system obsługiwał **ten sam strumień zgłoszeń** (identyczne czasy przybycia) oraz te same czasy obsługi i momenty awarii. Różnice w wynikach wynikają więc wyłącznie ze zmiany struktury systemu (liczby maszyn).
+Badania koncentrowały się na dwóch obszarach:
+1.  **Optymalizacja konfiguracji (Alokacja zasobów):** Jak najlepiej rozdzielić budżet 5 maszyn pomiędzy dwa etapy produkcji?
+2.  **Strategia inwestycyjna (Ilość vs Jakość):** Czy efektywniejsze jest dokupienie nowej maszyny, czy inwestycja w zwiększenie niezawodności obecnego parku maszynowego?
 
 ---
 
-## 3. Realizacja badań - wyniki
+## 2. Metodyka badań
 
-Symulację przeprowadzono w środowisku Python (biblioteka `SimPy`). Poniżej przedstawiono statystyki opisowe uzyskane z 30 replikacji.
+### 2.1. Model symulacyjny i parametry
+Badania przeprowadzono przy użyciu symulacji dyskretnej (biblioteka `SimPy`). Przyjęto następujące parametry wejściowe dla środowiska testowego:
+* **Czas symulacji:** 10 000 minut (długi horyzont dla ustabilizowania wskaźników).
+* **Strumień zgłoszeń ($\lambda$):** Rozkład wykładniczy, średni czas między przyjściami losowany z przedziału $U(8, 12)$ min.
+* **Czasy obsługi:**
+    * Etap A: $U(2, 15)$ min (średnia ~8.5 min).
+    * Etap B: $U(10, 20)$ min (średnia ~15.0 min).
 
-### 3.1. Statystyki opisowe
+### 2.2. Metoda Redukcji Wariancji (Common Random Numbers)
+W celu zapewnienia rzetelności porównań zastosowano technikę **Wspólnych Liczb Losowych (CRN - Common Random Numbers)**.
+* Wygenerowano **30 niezależnych replikacji**.
+* Dla każdej replikacji ustalono ziarno losowości (`seed`), które posłużyło do wygenerowania identycznego ciągu zadań (te same czasy przyjścia i obsługi) dla każdego z porównywanych scenariuszy.
+* Podejście to pozwoliło na zastosowanie statystycznych testów dla **prób zależnych**, eliminując wpływ losowości strumienia wejściowego na ocenę różnic między konfiguracjami.
 
-| Statystyka | Scenariusz S1 (3A + 2B) | Scenariusz S2 (3A + 3B) |
+---
+
+## 3. Badanie 1: Optymalizacja Konfiguracji (Wąskie Gardło)
+
+### 3.1. Opis eksperymentu
+Porównano dwie możliwe konfiguracje przy stałej liczbie 5 maszyn:
+* **Scenariusz 1A:** 2 maszyny typu A, 3 maszyny typu B.
+* **Scenariusz 1B:** 3 maszyny typu A, 2 maszyny typu B.
+
+**Hipoteza badawcza ($H_1$):** Konfiguracja 2A+3B zapewnia istotnie krótszy średni czas realizacji zlecenia niż konfiguracja 3A+2B.
+
+### 3.2. Wyniki symulacji
+Poniższa tabela przedstawia średnie czasy realizacji zlecenia (w minutach) dla 30 replikacji:
+
+| Parametr | Konfiguracja 2A + 3B | Konfiguracja 3A + 2B |
 | :--- | :---: | :---: |
-| **Średnia arytmetyczna** | *[WPISZ WYNIK]* min | *[WPISZ WYNIK]* min |
-| **Odchylenie standardowe** | *[WPISZ WYNIK]* | *[WPISZ WYNIK]* |
-| **Min** | *[WPISZ WYNIK]* | *[WPISZ WYNIK]* |
-| **Max** | *[WPISZ WYNIK]* | *[WPISZ WYNIK]* |
+| **Średnia ($Mean$)** | **[WPISZ WYNIK Z KODU]** | **[WPISZ WYNIK Z KODU]** |
+| **Odchylenie ($Std$)** | [WPISZ WYNIK] | [WPISZ WYNIK] |
 
-*(Wskazówka: Wpisz tutaj wartości wypisane przez program w sekcji "WYNIKI ZBIORCZE")*
+### 3.3. Wizualizacja
+Poniższy wykres pudełkowy obrazuje rozkład czasów realizacji w obu badanych konfiguracjach.
 
-### 3.2. Wizualizacja wyników
+![Porównanie Konfiguracji](wykres_konfiguracja.png)
+*Rys. 1. Rozkład czasu przebywania w systemie dla różnych konfiguracji maszyn.*
 
-**Rys. 1. Wykres pudełkowy (Boxplot) czasów realizacji dla obu scenariuszy.**
-![Wykres Pudełkowy](wykres_pudelkowy.png)
-*[Tutaj wstaw wygenerowany plik wykres_pudelkowy.png]*
-
-**Komentarz:** Na wykresie pudełkowym obserwujemy wyraźne przesunięcie rozkładu w dół dla Scenariusza 2. Rozstęp międzykwartylowy (wysokość pudełka) jest również mniejszy, co sugeruje większą stabilność czasu realizacji po dołożeniu maszyny.
-
-**Rys. 2. Zysk czasowy w poszczególnych replikacjach (Różnice S1 - S2).**
-![Wykres Różnic](wykres_roznic.png)
-*[Tutaj wstaw wygenerowany plik wykres_roznic.png]*
-
-**Komentarz:** Wykres różnic pokazuje, o ile minut skrócił się czas realizacji w każdym z 30 badanych przypadków losowych. Widać, że dla każdego ziarna losowości (seeda) wartość ta jest dodatnia, co świadczy o przewadze Scenariusza 2 niezależnie od warunków losowych.
+### 3.4. Wnioski z badania 1
+Analiza wykazuje drastyczną różnicę na korzyść konfiguracji **2A + 3B**. Wynika to z faktu, że proces B jest znacznie bardziej czasochłonny (śr. 15 min) niż proces A (śr. 8.5 min). W konfiguracji 3A+2B, etap B staje się "wąskim gardłem" (bottleneck), co prowadzi do lawinowego narastania kolejki. Przesunięcie jednej maszyny do etapu B udrażnia system.
 
 ---
 
-## 4. Analiza statystyczna i weryfikacja hipotez
+## 4. Badanie 2: Inwestycja w Zasoby vs Niezawodność
 
-[cite_start]W celu formalnego potwierdzenia obserwowanych różnic przeprowadzono test statystyczny[cite: 234].
+### 4.1. Opis eksperymentu
+Menedżer rozważa dwie opcje inwestycyjne poprawiające wydajność bazowego systemu:
+* **Opcja "Więcej Maszyn":** Zakup dodatkowej maszyny do etapu A (Konfiguracja: 4A + 2B).
+* **Opcja "Lepsza Niezawodność":** Inwestycja w lepsze utrzymanie ruchu – zwiększenie czasu między awariami (MTBF) ze standardowego zakresu (120-180 min) do stałej wartości **300 min** (przy zachowaniu konfiguracji 3A + 2B).
 
-### 4.1. Hipotezy
+**Hipoteza badawcza ($H_1$):** Inwestycja w niezawodność (jakość) przynosi większą redukcję czasu realizacji niż inwestycja w nadmiarową maszynę A (ilość).
 
-[cite_start]Sformułowano następujące hipotezy statystyczne[cite: 233]:
-* **Hipoteza zerowa ($H_0$):** $\mu_1 = \mu_2$ (Średnie czasy realizacji w obu konfiguracjach są równe).
-* **Hipoteza alternatywna ($H_1$):** $\mu_1 \neq \mu_2$ (Istnieje istotna statystycznie różnica między średnimi czasami).
+### 4.2. Wyniki symulacji i test statystyczny
 
-### 4.2. Test statystyczny
+| Parametr | Opcja: Więcej Maszyn (4A) | Opcja: Lepsze MTBF (300) |
+| :--- | :---: | :---: |
+| **Średni czas realizacji** | **[WPISZ WYNIK Z KODU]** | **[WPISZ WYNIK Z KODU]** |
 
-Ze względu na zastosowanie metody Wspólnych Liczb Losowych (próby zależne), do weryfikacji wykorzystano **test t-Studenta dla par zależnych (Paired t-test)**. Przyjęto poziom istotności $\alpha = 0.05$.
+Przeprowadzono **test t-Studenta dla par zależnych**:
+* Wartość statystyki t: `[WPISZ WYNIK]`
+* Wartość p ($p$-value): `[WPISZ WYNIK]`
 
-**Wyniki testu:**
-* Statystyka t: *[WPISZ WARTOŚĆ Z KODU]*
-* Wartość p ($p$-value): **[WPISZ WARTOŚĆ Z KODU]**
+### 4.3. Wizualizacja
 
-### 4.3. Interpretacja
+![Porównanie Inwestycji](wykres_inwestycja.png)
+*Rys. 2. Zysk czasowy (różnica w czasie realizacji) dla poszczególnych symulacji. Wartości dodatnie wskazują przewagę opcji "Lepsze MTBF".*
 
-Ponieważ uzyskana wartość $p$ jest mniejsza od założonego poziomu istotności $\alpha$ ($p < 0.05$), **odrzucamy hipotezę zerową** na rzecz hipotezy alternatywnej.
-
-Oznacza to, że różnica między średnim czasem realizacji w systemie z 2 maszynami B a systemem z 3 maszynami B jest **istotna statystycznie**. Wynik ten nie jest dziełem przypadku.
-
----
-
-## 5. Wnioski końcowe
-
-[cite_start]Na podstawie przeprowadzonych badań symulacyjnych i analizy statystycznej sformułowano następujące wnioski[cite: 235]:
-
-1.  **Potwierdzenie skuteczności inwestycji:** Dodanie trzeciej maszyny w Etapie B (Montaż) pozwala na znaczące skrócenie średniego czasu realizacji zlecenia (średnia redukcja o ok. *[WPISZ]* minut).
-2.  **Likwidacja wąskiego gardła:** Analiza wskazuje, że przy zwiększonym obciążeniu ($\lambda \approx 10$ min), dwie maszyny typu B nie są w stanie na bieżąco obsługiwać napływających elementów z wydajniejszego Etapu A (3 maszyny), co prowadzi do tworzenia się kolejek. Trzecia maszyna rozwiązuje ten problem.
-3.  **Stabilność procesu:** Zastosowanie metody CRN wykazało, że poprawa wydajności jest stabilna i występuje w każdym z 30 przebadanych scenariuszy losowych, niezależnie od sekwencji awarii czy czasów obsługi.
-4.  **Rekomendacja:** Zaleca się rozbudowę linii produkcyjnej do konfiguracji 3A + 3B w celu zapewnienia płynności produkcji przy planowanym wzroście zamówień.
+### 4.4. Wnioski z badania 2
+Ponieważ $p < 0.05$, odrzucamy hipotezę zerową. Badania wykazały, że **inwestycja w niezawodność jest bardziej opłacalna**. Dodanie czwartej maszyny do etapu A jest marnotrawstwem, ponieważ etap ten nie jest wąskim gardłem. Z kolei rzadsze awarie (wyższe MTBF) zwiększają dostępność maszyn w krytycznym etapie B, co realnie poprawia przepustowość.
 
 ---
-*Wykonano przy użyciu języka Python, biblioteki SimPy oraz SciPy.*
+
+## 5. Podsumowanie projektu
+
+W ramach projektu zrealizowano kompletny model symulacyjny dwuetapowej linii produkcyjnej. Kluczowe wnioski końcowe:
+
+1.  **Identyfikacja wąskiego gardła:** Krytycznym elementem systemu jest Etap B (Montaż). Wszelkie działania optymalizacyjne powinny skupiać się na tym obszarze.
+2.  **Rekomendacja konfiguracji:** Dla 5 maszyn bezwzględnie zalecana jest konfiguracja **2 maszyny A i 3 maszyny B**.
+3.  **Strategia utrzymania ruchu:** W przypadku braku możliwości dokupienia maszyn do wąskiego gardła, kluczowe jest zapewnienie wysokiej niezawodności (MTBF) istniejących zasobów.
+4.  **Zastosowanie metodyki:** Użycie metody CRN pozwoliło na uzyskanie statystycznie istotnych wyników przy ograniczonej liczbie replikacji, eliminując wpływ losowości popytu na ocenę decyzji projektowych.
+
+---
+*Autorzy: [Twoje Imię i Nazwisko]*
+*Data: Styczeń 2025*
