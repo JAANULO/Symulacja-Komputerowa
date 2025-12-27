@@ -1,0 +1,73 @@
+2. Plan Badań i Hipotezy (Co badamy?)
+Na podstawie rozmowy z prowadzącą, Twoje badania nie mogą być trywialne (np. "więcej maszyn = lepiej"). Musisz skupić się na nietrywialnych porównaniach lub decyzjach menedżerskich ("w co lepiej zainwestować?").
+
+Zdefiniowane w dialogu hipotezy do sprawdzenia:
+
+Konfiguracja systemu (Wąskie gardło): Mając do dyspozycji budżet na 5 maszyn, która konfiguracja zapewnia większą przepustowość?
+
+Konfiguracja A: 2 maszyny typu A i 3 maszyny typu B.
+
+Konfiguracja B: 3 maszyny typu A i 2 maszyny typu B.
+
+Prowadząca zasugerowała, że to ciekawa analiza "inwestycyjna".
+
+Niezawodność vs Liczba maszyn: Co ma większy wpływ na efektywność (przepustowość) systemu?
+
+Zwiększenie liczby maszyn.
+
+Zwiększenie czasu między awariami (rzadsze psucie się maszyn).
+
+Tu należy porównać warianty, np. ustawiając na sztywno czas między awariami na 120 vs 180 minut [Dialog: 7:00-10:00].
+
+3. Metodyka: Problem "Ziarna" (Seed) i Próby Zależne
+To kluczowy element techniczny wynikający z nagrania. Prowadząca zauważyła brak powtarzalności w Waszym kodzie (random bez seed).
+
+Jak to zaimplementować w Etapie III:
+
+Wprowadzenie Ziarna (Seed): Musicie zaimplementować random.seed() lub odpowiednik w SimPy na początku symulacji.
+
+Cel: Chodzi o to, aby do systemu wchodziło dokładnie to samo zadanie (ten sam ciąg losowy czasów przyjścia i obsługi) dla obu porównywanych konfiguracji.
+
+Rodzaj testów: Dzięki temu będziecie mogli zastosować testy dla prób zależnych (sparowanych). Porównujecie różnicę w czasie obsługi tego konkretnego zadania X w konfiguracji 1 oraz w konfiguracji 2.
+
+Wskazówka od prowadzącej: Jest to podejście "ciekawsze" i bardziej eleganckie niż generowanie tysięcy niezależnych prób, choć opcja z próbami niezależnymi (bez seeda) też jest dopuszczalna, jeśli zbierzecie bardzo dużo danych.
+
+4. Realizacja Symulacji i Zbieranie Danych
+Zgodnie z instrukcją i dialogiem, musicie wyjść poza wyświetlanie wyników w konsoli.
+
+Ustalenie parametrów wejściowych (Plan Eksperymentu):
+
+Musicie określić, dla jakich zestawów danych uruchamiacie model.
+
+Przykład z dialogu: Zamiast losować parametr awarii z zakresu 120-180 (Uniform), ustawiacie go "na sztywno" na 120 dla jednej serii i 180 dla drugiej [Dialog: 7:00-10:00].
+
+Eksport danych (Surowe dane):
+
+Symulacja musi zrzucać wyniki do pliku (np. CSV/Excel). Nie może to być tylko wyliczona średnia na ekranie.
+
+Należy zbierać "surowe dane" (np. czasy przejścia poszczególnych elementów), a nie tylko zagregowane statystyki.
+
+5. Analiza Statystyczna
+W sprawozdaniu musicie zawrzeć:
+
+
+Tabele zagregowane: Podsumowanie wyników (średnie, odchylenia).
+
+
+Wykresy: Wizualizacja zależności (np. wykres pudełkowy porównujący czasy w systemie dla konfiguracji 2-3 vs 3-2).
+
+Weryfikacja Hipotez (Testy):
+
+Należy sformułować hipotezy statystyczne H1 i H0
+Wykonać odpowiedni test (np. test t-Studenta dla par obserwacji, jeśli użyjecie Seedów, lub test dla średnich w grupach niezależnych, jeśli nie).
+
+Prowadząca oczekuje odpowiedzi na pytania typu: "Czy różnica między konfiguracją ze 120 min a 180 min (czas do awarii) jest istotna statystycznie?".
+
+Podsumowanie zadań do wykonania "na już":
+Kod: Dodać obsługę seed (ziarna) i eksport wyników do pliku CSV.
+
+Symulacja: Przeprowadzić serie pomiarowe dla ustalonych na sztywno parametrów (np. Konfiguracja 2A+3B vs 3A+2B).
+
+Excel/Python: Obrobić dane z CSV, zrobić wykresy i policzyć testy istotności różnic.
+
+Raport: Opisać to w sprawozdaniu (Wstęp, Model, Wyniki, Wnioski).
