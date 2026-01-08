@@ -47,10 +47,17 @@ Poniższa tabela przedstawia średnie czasy realizacji zlecenia (w minutach) dla
 
 | Parametr | Konfiguracja 2A + 3B | Konfiguracja 3A + 2B |
 | :--- | :---: | :---: |
-| **Średnia ($Mean$)** | **[WPISZ WYNIK Z KODU]** | **[WPISZ WYNIK Z KODU]** |
-| **Odchylenie ($Std$)** | [WPISZ WYNIK] | [WPISZ WYNIK] |
+| **Średnia ($Mean$)** | **28.42 min** | **39.07 min** |
+| **Odchylenie ($Std$)** | 0.70 min | 3.21 min |
 
-### 3.3. Wizualizacja
+### 3.3. Test statystyczny
+Przeprowadzono **test t-Studenta dla par zależnych**:
+* Wartość statystyki t: `-21.5626`
+* Wartość p ($p$-value): `2.12e-19`
+
+Ponieważ $p < 0.05$, odrzucamy hipotezę zerową — różnica jest istotna statystycznie.
+
+### 3.4. Wizualizacja
 Poniższy wykres pudełkowy obrazuje rozkład czasów realizacji w obu badanych konfiguracjach.
 
 ![Porównanie Konfiguracji](wykres_konfiguracja.png)
@@ -74,11 +81,12 @@ Menedżer rozważa dwie opcje inwestycyjne poprawiające wydajność bazowego sy
 
 | Parametr | Opcja: Więcej Maszyn (4A) | Opcja: Lepsze MTBF (300) |
 | :--- | :---: | :---: |
-| **Średni czas realizacji** | **[WPISZ WYNIK Z KODU]** | **[WPISZ WYNIK Z KODU]** |
+| **Średni czas realizacji** | **39.42 min** | **36.65 min** |
+| **Odchylenie ($Std$)** | 3.79 min | 3.03 min |
 
 Przeprowadzono **test t-Studenta dla par zależnych**:
-* Wartość statystyki t: `[WPISZ WYNIK]`
-* Wartość p ($p$-value): `[WPISZ WYNIK]`
+* Wartość statystyki t: `10.9329`
+* Wartość p ($p$-value): `8.40e-12`
 
 ### 4.3. Wizualizacja
 
@@ -100,5 +108,5 @@ W ramach projektu zrealizowano kompletny model symulacyjny dwuetapowej linii pro
 4.  **Zastosowanie metodyki:** Użycie metody CRN pozwoliło na uzyskanie statystycznie istotnych wyników przy ograniczonej liczbie replikacji, eliminując wpływ losowości popytu na ocenę decyzji projektowych.
 
 ---
-*Autorzy: [Twoje Imię i Nazwisko]*
-*Data: Styczeń 2025*
+*Autorzy: Janusz Andrzejewski, Igor Lis*
+*Data: Styczeń 2026*

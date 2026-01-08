@@ -188,27 +188,40 @@ def uruchom_pojedynczy_przebieg(zadania, n_a, n_b, mtbf_val, nazwa_scenariusza):
 # --- 6. GŁÓWNA ANALIZA ---
 
 def analizuj_i_rysuj(tytul, dane1, dane2, etykieta1, etykieta2, plik_wykresu):
-    """Pomocnicza funkcja do statystyk i wykresów"""
+    """Pomocnicza funkcja do statystyk i wykresów. Zwraca słownik ze statystykami."""
     sr1 = statistics.mean(dane1)
     sr2 = statistics.mean(dane2)
+    std1 = statistics.stdev(dane1)
+    std2 = statistics.stdev(dane2)
 
     # Test t-Studenta dla par zależnych
     t_stat, p_val = stats.ttest_rel(dane1, dane2)
 
     print(f"\n--- WYNIKI: {tytul} ---")
-    print(f"{etykieta1}: średni czas = {sr1:.2f} min")
-    print(f"{etykieta2}: średni czas = {sr2:.2f} min")
+    print(f"{etykieta1}: średni czas = {sr1:.2f} min (std = {std1:.2f})")
+    print(f"{etykieta2}: średni czas = {sr2:.2f} min (std = {std2:.2f})")
     print(f"Różnica: {sr1 - sr2:.2f} min")
-    print(f"Test t-Studenta (pary zależne), p-value: {p_val:.5e}")
+    print(f"Test t-Studenta (pary zależne): t = {t_stat:.4f}, p-value: {p_val:.5e}")
     if p_val < 0.05:
         print("-> Różnica JEST istotna statystycznie.")
     else:
         print("-> Różnica NIE JEST istotna statystycznie.")
 
-    # Wykres różnic
+    # Wykres pudełkowy (boxplot)
+    plt.figure(figsize=(8, 6))
+    bp = plt.boxplot([dane1, dane2], labels=[etykieta1, etykieta2], patch_artist=True)
+    bp['boxes'][0].set_facecolor('lightcoral')
+    bp['boxes'][1].set_facecolor('lightgreen')
+    plt.title(f"{tytul}\nRozkład czasów realizacji")
+    plt.ylabel("Średni czas realizacji [min]")
+    plt.grid(axis='y', alpha=0.3)
+    plik_boxplot = plik_wykresu.replace('.png', '_boxplot.png')
+    plt.savefig(plik_boxplot)
+    print(f"Wykres pudełkowy zapisano jako {plik_boxplot}")
+
+    # Wykres różnic (słupkowy)
     delta = [v1 - v2 for v1, v2 in zip(dane1, dane2)]
     kolory = ['green' if d > 0 else 'red' for d in delta]
-    # d > 0 oznacza, że v1 (bazowy) był dłuższy niż v2 (ulepszony), więc zmiana na v2 dała zysk (zielony)
 
     plt.figure(figsize=(10, 5))
     plt.bar(range(len(delta)), delta, color=kolory)
@@ -217,7 +230,22 @@ def analizuj_i_rysuj(tytul, dane1, dane2, etykieta1, etykieta2, plik_wykresu):
     plt.ylabel("Skrócenie czasu [min]")
     plt.axhline(0, color='black')
     plt.savefig(plik_wykresu)
-    print(f"Wykres zapisano jako {plik_wykresu}")
+    print(f"Wykres różnic zapisano jako {plik_wykresu}")
+
+    # Zwróć statystyki do zapisu
+    return {
+        'tytul': tytul,
+        'etykieta1': etykieta1,
+        'etykieta2': etykieta2,
+        'srednia1': sr1,
+        'srednia2': sr2,
+        'std1': std1,
+        'std2': std2,
+        't_stat': t_stat,
+        'p_value': p_val,
+        'roznica': sr1 - sr2,
+        'istotna': p_val < 0.05
+    }
 
 def main():
     N_REPLIKACJI = 30
@@ -283,7 +311,7 @@ def main():
     # --- ANALIZA I WYKRESY ---
 
     # 1. Porównanie Konfiguracji
-    analizuj_i_rysuj(
+    stat1 = analizuj_i_rysuj(
         "Badanie 1: Konfiguracja 2A+3B vs 3A+2B",
         wyniki_scen_1a, wyniki_scen_1b,
         "2A+3B", "3A+2B",
@@ -291,13 +319,27 @@ def main():
     )
 
     # 2. Porównanie Inwestycji (Co daje lepszy efekt?)
-    # Porównujemy "Więcej Maszyn" vs "Lepsze MTBF"
-    analizuj_i_rysuj(
+    stat2 = analizuj_i_rysuj(
         "Badanie 2: Inwestycja w ilość (4 maszyny) vs jakość (rzadsze awarie)",
         wyniki_scen_2_maszyny, wyniki_scen_2_jakosc,
         "Więcej Maszyn", "Rzadsze Awarie",
         "wykres_inwestycja.png"
     )
+
+    # --- ZAPIS STATYSTYK DO PLIKU ---
+    with open('statystyki_etap3.txt', 'w', encoding='utf-8') as f:
+        f.write("STATYSTYKI BADAŃ SYMULACYJNYCH - ETAP 3\n")
+        f.write("=" * 60 + "\n\n")
+        
+        for stat in [stat1, stat2]:
+            f.write(f"--- {stat['tytul']} ---\n")
+            f.write(f"{stat['etykieta1']}: średnia = {stat['srednia1']:.2f} min, std = {stat['std1']:.2f} min\n")
+            f.write(f"{stat['etykieta2']}: średnia = {stat['srednia2']:.2f} min, std = {stat['std2']:.2f} min\n")
+            f.write(f"Różnica średnich: {stat['roznica']:.2f} min\n")
+            f.write(f"Test t-Studenta: t = {stat['t_stat']:.4f}, p = {stat['p_value']:.5e}\n")
+            f.write(f"Istotność statystyczna (α=0.05): {'TAK' if stat['istotna'] else 'NIE'}\n\n")
+        
+    print("\nStatystyki zapisano do pliku: statystyki_etap3.txt")
 
     plt.show()
 

@@ -11,15 +11,22 @@ This project simulates a two-stage production line (Processing A and Assembly B)
 ## Configuration & Usage
 
 ### Setup
+
+Check for a venv, if not create one:
+```bash
+p -m venv venv
+source venv/bin/activate
+```
+
 Install dependencies:
 ```bash
-pip install -r requirements.txt
+pp install -r requirements.txt
 ```
 
 ### Running the simulation
 To run the Stage 3 simulation and analysis:
 ```bash
-python3 Projekt/Etap_3/Etap_3.py
+p Projekt/Etap_3/Etap_3.py
 ```
 
 ## Directory Structure

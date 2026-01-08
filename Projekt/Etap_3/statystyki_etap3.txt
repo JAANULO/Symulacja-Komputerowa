@@ -1,0 +1,17 @@
+STATYSTYKI BADAŃ SYMULACYJNYCH - ETAP 3
+============================================================
+
+--- Badanie 1: Konfiguracja 2A+3B vs 3A+2B ---
+2A+3B: średnia = 28.42 min, std = 0.70 min
+3A+2B: średnia = 39.07 min, std = 3.21 min
+Różnica średnich: -10.65 min
+Test t-Studenta: t = -21.5626, p = 2.11696e-19
+Istotność statystyczna (α=0.05): TAK
+
+--- Badanie 2: Inwestycja w ilość (4 maszyny) vs jakość (rzadsze awarie) ---
+Więcej Maszyn: średnia = 39.42 min, std = 3.79 min
+Rzadsze Awarie: średnia = 36.65 min, std = 3.03 min
+Różnica średnich: 2.77 min
+Test t-Studenta: t = 10.9329, p = 8.40151e-12
+Istotność statystyczna (α=0.05): TAK
+
