@@ -8,10 +8,10 @@ Różnica średnich: -10.65 min
 Test t-Studenta: t = -21.5626, p = 2.11696e-19
 Istotność statystyczna (α=0.05): TAK
 
---- Badanie 2: Inwestycja w ilość (4 maszyny) vs jakość (rzadsze awarie) ---
-Więcej Maszyn: średnia = 39.42 min, std = 3.79 min
+--- Badanie 2: Inwestycja w ilość (3A+3B) vs jakość (rzadsze awarie) ---
+Więcej Maszyn (3A+3B): średnia = 27.41 min, std = 0.61 min
 Rzadsze Awarie: średnia = 36.65 min, std = 3.03 min
-Różnica średnich: 2.77 min
-Test t-Studenta: t = 10.9329, p = 8.40151e-12
+Różnica średnich: -9.24 min
+Test t-Studenta: t = -19.9376, p = 1.78687e-18
 Istotność statystyczna (α=0.05): TAK
 
