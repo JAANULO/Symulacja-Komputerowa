@@ -6,18 +6,18 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from dataclasses import dataclass
 
-# --- 1. PARAMETRY BAZOWE SYSTEMU ---
-# Zakresy czasów (min) - zgodne z etapami 1 i 2
+# - 1. PARAMETRY BAZOWE SYSTEMU -
+# zakresy czasów (min) - zgodne z etapami 1 i 2
 ZAKRES_CZASU_A = (2, 15)      #min (rozkład jednostajny)
 ZAKRES_CZASU_B = (10, 20)     # min (rozkład jednostajny)
 ZAKRES_MTTR = (3, 10)         #czas naprawy (średnio)
 BAZOWE_MTBF = (120, 180)      #standardowa awaryjność (czas między awariami)
 
-# Parametry symulacji
+# parametry symulacji
 CZAS_SYMULACJI = 10000  #minuty
 PLIK_WYNIKOW = 'wyniki_surowe_etap3.csv'
 
-# --- 2. STRUKTURY DANYCH ---
+# - 2. STRUKTURY DANYCH -
 
 @dataclass
 class Zadanie:
@@ -89,7 +89,7 @@ class ZasobProdukcyjny:
         """zwracanie długości kolejki + liczbę zajętych stanowisk"""
         return len(self.zasob.queue) + self.zasob.count
 
-# --- 3. LOGIKA PROCESU (Shortest Queue) ---
+# - 3. LOGIKA PROCESU (Shortest Queue) -
 
 def wybierz_maszyne(maszyny):
     """wybieranie maszyny z najmniejszym obciążeniem (Shortest Queue)"""
@@ -144,13 +144,13 @@ def proces_obslugi(env, zadanie, maszyny_a, maszyny_b, monitor, nazwa_scenariusz
     )
 
 def generator_zadan(env, lista_zadan, maszyny_a, maszyny_b, monitor, scenariusz):
-    """Wpuszczanie do systemu zadania poprzedniego (CRN)"""
+    """wpuszczanie do systemu zadania poprzedniego (CRN)"""
     for zadanie in lista_zadan:
         if zadanie.czas_przyjscia > env.now:
             yield env.timeout(zadanie.czas_przyjscia - env.now)
         env.process(proces_obslugi(env, zadanie, maszyny_a, maszyny_b, monitor, scenariusz))
 
-# --- 4. PRE-GENEROWANIE (CRN) ---
+# - 4. PRE-GENEROWANIE (CRN) -
 
 def przygotuj_wspolne_zadania(seed, lambda_range, czas_max):
     """generowanie identycznego zestawu zadań dla porównywanych scenariuszy"""
@@ -170,7 +170,7 @@ def przygotuj_wspolne_zadania(seed, lambda_range, czas_max):
         i += 1
     return zadania
 
-# --- 5. RUNNER ---
+# - 5. RUNNER -
 
 def uruchom_pojedynczy_przebieg(zadania, n_a, n_b, mtbf_val, nazwa_scenariusza):
     env = simpy.Environment()
@@ -185,7 +185,7 @@ def uruchom_pojedynczy_przebieg(zadania, n_a, n_b, mtbf_val, nazwa_scenariusza):
 
     return monitor
 
-# --- 6. GŁÓWNA ANALIZA ---
+# - 6. GŁÓWNA ANALIZA -
 
 def analizuj_i_rysuj(tytul, dane1, dane2, etykieta1, etykieta2, plik_wykresu):
     """słownik ze statystykami."""
@@ -200,7 +200,7 @@ def analizuj_i_rysuj(tytul, dane1, dane2, etykieta1, etykieta2, plik_wykresu):
     print(f"\n--- WYNIKI: {tytul} ---")
     print(f"{etykieta1}: średni czas = {sr1:.2f} min (std = {std1:.2f})")
     print(f"{etykieta2}: średni czas = {sr2:.2f} min (std = {std2:.2f})")
-    print(f"Różnica: {sr1 - sr2:.2f} min")
+    print(f"Różnica średnich: {sr1 - sr2:.2f} min")
     print(f"Test t-Studenta (pary zależne): t = {t_stat:.4f}, p-value: {p_val:.5e}")
     if p_val < 0.05:
         print("-> Różnica JEST istotna statystycznie.")
@@ -269,8 +269,8 @@ def main():
         #generowanie WSPÓLNY wsad zadań (CRN)
         zadania = przygotuj_wspolne_zadania(seed, LAMBDA, CZAS_SYMULACJI)
 
-        # --- BADANIE 1: Konfiguracja (Bottleneck) ---
-        # 2A+3B (Optymalna) vs 3A+2B (Bazowa)
+        # - BADANIE 1: Konfiguracja (Bottleneck) -
+        # 2A+3B (optymalna) vs 3A+2B (bazowa)
         mon1 = uruchom_pojedynczy_przebieg(zadania, 2, 3, BAZOWE_MTBF, "S1_2A_3B")
         mon2 = uruchom_pojedynczy_przebieg(zadania, 3, 2, BAZOWE_MTBF, "S1_3A_2B")
 
@@ -284,17 +284,17 @@ def main():
         #Baza 3A, 2B
         wyniki_scen_2_base.append(statistics.mean(mon2.czasy_realizacji))
 
-        #Opcja: Więcej maszyn (3A, 3B, MTBF standard)
+        #OPCJA: więcej maszyn (3A, 3B, MTBF standard)
         mon_maszyny = uruchom_pojedynczy_przebieg(zadania, 3, 3, BAZOWE_MTBF, "S2_WiecejMaszyn")
         wyniki_scen_2_maszyny.append(statistics.mean(mon_maszyny.czasy_realizacji))
         wszystkie_dane.extend(mon_maszyny.rekordy)
 
-        #Opcja: Lepsza niezawodność (3A, 2B, MTBF = 300 na sztywno)
+        #OPCJA: lepsza niezawodność (3A, 2B, MTBF = 300 na sztywno)
         mon_jakosc = uruchom_pojedynczy_przebieg(zadania, 3, 2, 300, "S2_LepszeMTBF")
         wyniki_scen_2_jakosc.append(statistics.mean(mon_jakosc.czasy_realizacji))
         wszystkie_dane.extend(mon_jakosc.rekordy)
 
-    # --- ZAPIS CSV ---
+    # - ZAPIS CSV -
     pola = ["Scenariusz", "ID_Zadania", "Czas_Wejscia", "Czas_Wyjscia",
             "Czas_Realizacji", "Czas_Oczekiwania_A", "Czas_Oczekiwania_B"]
     with open(PLIK_WYNIKOW, 'w', newline='') as f:
@@ -303,18 +303,18 @@ def main():
         writer.writerows(wszystkie_dane)
     print(f"\nZapisano surowe dane do {PLIK_WYNIKOW}")
 
-    # --- ANALIZA I WYKRESY ---
+    # - ANALIZA I WYKRESY -
 
-    # 1. porównanie Konfiguracji
+    # 1. porównanie konfiguracji
     stat1 = analizuj_i_rysuj(
         "Badanie 1: Konfiguracja 2A+3B vs 3A+2B",wyniki_scen_1a, wyniki_scen_1b,
         "2A+3B", "3A+2B","wykres_konfiguracja.png"
     )
 
-    # 2. porównanie Inwestycji (Co daje lepszy efekt?)
+    # 2. porównanie inwestycji (co daje lepszy efekt?)
     stat2 = analizuj_i_rysuj(
         "Badanie 2: Inwestycja w ilość (3A+3B) vs jakość (rzadsze awarie)",wyniki_scen_2_maszyny, wyniki_scen_2_jakosc,
-        "Więcej Maszyn (3A+3B)", "Rzadsze Awarie","wykres_inwestycja.png"
+        "Więcej Maszyn (3A+3B)", "Rzadsze Awarie (3A+2B)","wykres_inwestycja.png"
     )
 
     # - ZAPIS STATYSTYK DO PLIKU -
